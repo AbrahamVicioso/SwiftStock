@@ -19,3 +19,14 @@ model roles {
   r_id   Int    @id @default(autoincrement())
   r_name String @unique
 }
+
+model articles {
+  ar_id   Int     @id @default(autoincrement())
+  ar_name String?
+  ar_code String? @unique
+}
+
+model wharehouses {
+  w_id   Int    @id @default(autoincrement())
+  w_name String @unique
+}

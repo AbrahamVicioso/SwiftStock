@@ -7,6 +7,39 @@ CREATE TABLE Users(
 );
 
 CREATE TABLE Roles(
-    R_ID SERIAL PRIMARY KEY,
+    R_Id SERIAL PRIMARY KEY,
     R_Name TEXT UNIQUE NOT NULL
+);
+
+-- SEQUENCE ARTICLES
+CREATE SEQUENCE ArticlesCode
+INCREMENT 1
+START 01;
+
+
+CREATE TABLE Articles(
+    Ar_Id SERIAL PRIMARY KEY,
+    Ar_Name TEXT,
+    Ar_Code TEXT UNIQUE
+);
+
+CREATE FUNCTION art2_code()
+RETURNS TRIGGER AS $$
+BEGIN
+	NEW.ar_code := 'A-' || EXTRACT("year" FROM CURRENT_DATE) || '-' || CAST(nextval('articlescode') AS TEXT);
+	RETURN NEW;
+END;
+$$ LANGUAGE 'plpgsql' ;
+
+
+CREATE TRIGGER create_artcode
+	BEFORE INSERT
+	ON articles
+	FOR EACH ROW
+EXECUTE PROCEDURE art2_code();
+
+
+CREATE TABLE Wharehouses(
+    W_id SERIAL PRIMARY KEY,
+    W_name TEXT UNIQUE NOT NULL
 );

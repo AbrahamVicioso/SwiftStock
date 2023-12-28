@@ -1,13 +1,30 @@
-import {Request,Response} from "express";
-const Router = require("express").Router();
+import {body} from "express-validator";
+import {Request,Response,NextFunction,Router} from "express";
+import {Prisma,PrismaClient} from "@prisma/client";
+import PassEncrypt from "../Middleware/PassEncrypt";
+import UserBodyValidator from "../Middleware/Validators/UserBodyValidator";
 
-Router.get("/login", (req : Request,res : Response) => {
-    res.send("HOLA ESTE ES EL LOGIN");
-});
+const router = Router();
+const prisma = new PrismaClient();
 
-Router.post("/register", (req : Request,res : Response) => {
-    res.send("HOLA ESTE ES EL LOGIN");
-    console.log(req.body);
-});
 
-module.exports = Router;
+router.post("/register", body("email").isEmail().notEmpty(),
+body("password").notEmpty(),body("role").notEmpty(),body("username").notEmpty(),UserBodyValidator,PassEncrypt,
+    function(req : Request, res :  Response){
+        const user = prisma.users.create({
+            data: {
+                username: req.body.username,
+                urole: req.body.role,
+                email: req.body.email,
+                psw: req.body.password
+            }
+        })
+        prisma.$transaction([user]).then(() => {
+            res.status(200).send("User created");
+        }).catch((reason: any) => {
+            reason.code = "P2002"? res.status(400).send(`Error in ${reason.meta.target[0]} is used`) : res.status(400).send("Error") 
+        });
+    }
+);
+
+module.exports = router;
