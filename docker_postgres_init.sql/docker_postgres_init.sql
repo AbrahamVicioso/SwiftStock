@@ -18,15 +18,19 @@ START 01;
 
 
 CREATE TABLE Articles(
-    Ar_Id SERIAL PRIMARY KEY,
-    Ar_Name TEXT,
-    Ar_Code TEXT UNIQUE
+    ar_id SERIAL PRIMARY KEY,
+    ar_name TEXT NOT NULL,
+    ar_code TEXT UNIQUE,
+    ar_brand TEXT NOT NULL,
+    ar_year TEXT NOT NULL,
+    ar_color Text NOT NULL,
+    ar_image Text
 );
 
 CREATE FUNCTION art2_code()
 RETURNS TRIGGER AS $$
 BEGIN
-	NEW.ar_code := 'A-' || EXTRACT("year" FROM CURRENT_DATE) || '-' || CAST(nextval('articlescode') AS TEXT);
+	NEW.ar_code := 	'A'|| SUBSTRING(NEW.ar_brand,1,1) || EXTRACT("year" FROM CURRENT_DATE) || CAST(nextval('articlescode') AS TEXT) || UPPER(SUBSTRING(NEW.ar_name,1,1)) || '-' || UPPER(SUBSTRING(NEW.ar_color,1,1));
 	RETURN NEW;
 END;
 $$ LANGUAGE 'plpgsql' ;

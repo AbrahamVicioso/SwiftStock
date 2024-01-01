@@ -1,15 +1,22 @@
-import {body} from "express-validator";
-import {Request,Response,NextFunction,Router} from "express";
+import {checkSchema} from "express-validator";
+import {Request,Response,Router} from "express";
 import {Prisma,PrismaClient} from "@prisma/client";
 import PassEncrypt from "../Middleware/PassEncrypt";
-import UserBodyValidator from "../Middleware/Validators/UserBodyValidator";
+import Validation from "../Middleware/Validators/ValidatorQueryPost";
+import multer from "multer";
 
 const router = Router();
 const prisma = new PrismaClient();
+const upload = multer();
 
-
-router.post("/register", body("email").isEmail().notEmpty(),
-body("password").notEmpty(),body("role").notEmpty(),body("username").notEmpty(),UserBodyValidator,PassEncrypt,
+router.post("/register",
+upload.fields([]),
+checkSchema({
+    username: {notEmpty: true},
+    role: {notEmpty: true},
+    email: {notEmpty: true, isEmail: true},
+    password: {notEmpty: true}
+}),Validation,PassEncrypt,
     function(req : Request, res :  Response){
         const user = prisma.users.create({
             data: {
@@ -22,7 +29,9 @@ body("password").notEmpty(),body("role").notEmpty(),body("username").notEmpty(),
         prisma.$transaction([user]).then(() => {
             res.status(200).send("User created");
         }).catch((reason: any) => {
-            reason.code = "P2002"? res.status(400).send(`Error in ${reason.meta.target[0]} is used`) : res.status(400).send("Error") 
+            reason.code = "P2002"? res.status(400).send({
+                data: `Error in ${reason.meta.target[0]} is used`
+            }) : res.status(400).send("Error") 
         });
     }
 );

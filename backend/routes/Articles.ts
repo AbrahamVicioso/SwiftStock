@@ -1,38 +1,65 @@
 import {Response,Request,NextFunction, Router} from "express";
-import {validationResult,body} from "express-validator";
+import {validationResult,checkSchema} from "express-validator";
 import {Prisma,PrismaClient} from "@prisma/client";
+import Validation from "../Middleware/Validators/ValidatorQueryPost";
+import upload from "../Controllers/UploadFileArticles";
 
 const router = Router();
 const prisma = new PrismaClient();
+
 prisma.$connect();
 
 router.get("/", (req : Request,res: Response) => {
+    const host = req.get('host')?.toString() || "";
     prisma.$transaction([
         prisma.articles.findMany()
-    ]).then((articles) => {
-        res.send(articles)
+    ]).then((articles) => {   
+        res.send(articles[0].map(x => {
+            let z = x;
+            z.ar_image = `${req.protocol}://${host}/articles/images/${x.ar_image}`
+            return z
+        }))
     })
 });
 
-router.post("/add", body("ar_code").notEmpty(),body("ar_name").notEmpty(), (req : Request ,res : Response) => {
-    const result = validationResult(req);
-    
-    if(result.isEmpty()){
-        const article = prisma.articles.create({
-            data: {
-                ar_name: req.body.ar_name,
-                ar_code: req.body.ar_code
-            }
-        })
-    
-        prisma.$transaction([article]).then(() => {
-            res.status(200).send("Articles created");
-        }).catch((reason : any) => {
-            res.status(200).send(reason)
-        });
-    }else{
-        res.status(400).send("fields are missing");
-    }
+router.post("/test", upload.fields([{
+    name: "ar_image", maxCount: 1
+}]), (req,res) => {
+    console.log(req.body)
+    console.log(req.file)
+    res.send("ok")
+})
+
+router.post(
+"/add",
+upload.fields([{
+    name: "ar_image", maxCount: 1
+}]),
+checkSchema({
+    ar_name: {notEmpty: true},
+    ar_year: {notEmpty: true},
+    ar_color: {notEmpty: true},
+    ar_brand: {notEmpty: true}
+}),
+Validation,
+(req : Request ,res : Response) => {
+    const files = req.files as {[fieldname: string] : Express.Multer.File[]}
+    console.log(req.body)
+    const article = prisma.articles.create({
+        data: {
+            ar_name: req.body.ar_name,
+            ar_brand: req.body.ar_brand,
+            ar_year: req.body.ar_year,
+            ar_color: req.body.ar_color,
+            ar_image: files["ar_image"][0]?.filename
+        }
+    })
+
+    prisma.$transaction([article]).then(() => {
+        res.status(201).send("Articles created");
+    }).catch((reason : any) => {
+        res.status(400).send(reason)
+    })
 });
 
 module.exports = router;
